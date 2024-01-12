@@ -1,11 +1,17 @@
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { registrationSchema } from "./validationSchema";
 import { FormData } from "./types";
 import { useSubmitForm } from "./useSubmitForm";
 import { InputField } from "../input/inputField";
+import AlertBanner from "../alert/alertBanner";
+import { useUsernameCheck } from "./useUsernameCheck";
 
 const RegistrationForm = () => {
+  const [isSuccess, setSuccess] = useState(false);
+  const [isSubmitError, setSubmitError] = useState(false);
+
   const initialFormValues: FormData = {
     username: "",
     email: "",
@@ -15,24 +21,45 @@ const RegistrationForm = () => {
 
   const {
     reset,
+    watch,
     register,
+    setError,
     handleSubmit,
     formState: { errors },
   } = useForm<FormData>({
     resolver: yupResolver(registrationSchema),
     defaultValues: initialFormValues,
-    mode: "onChange",
+    mode: "onBlur",
   });
 
   const mutation = useSubmitForm();
+
+  const username = watch("username");
+  const { data: isUsernameAvailable } = useUsernameCheck(username);
+
+  useEffect(() => {
+    if (isUsernameAvailable === false) {
+      setError("username", {
+        type: "manual",
+        message: "Username is already taken",
+      });
+    } else {
+      // Clear error when username is available or input is too short
+      if (errors.username?.type === "manual") {
+        setError("username", { type: "manual", message: "" });
+      }
+    }
+  }, [isUsernameAvailable, setError, errors.username]);
 
   const onSubmit = (data: FormData) => {
     mutation.mutate(data, {
       onSuccess: (data) => {
         reset();
+        setSuccess(true);
         console.log("Form submitted successfully:", data);
       },
       onError: (error) => {
+        setSubmitError(true);
         console.error("Error submitting form:", error);
       },
     });
@@ -108,9 +135,16 @@ const RegistrationForm = () => {
           </button>
         </div>
 
-        <div className="mt-10">
-          <p className="mt-2 text-sm text-red-600">Something went wrong</p>
-        </div>
+        {(isSuccess || isSubmitError) && (
+          <AlertBanner
+            isError={isSubmitError}
+            message={
+              isSubmitError
+                ? "Something went wrong."
+                : "We have received your message. we will contact you soon."
+            }
+          />
+        )}
       </form>
     </div>
   );

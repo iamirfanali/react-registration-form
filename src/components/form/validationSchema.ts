@@ -5,7 +5,8 @@ export const registrationSchema = yup
     username: yup
       .string()
       .required("Username is required")
-      .notOneOf(["hello"], "Username 'hello' is already taken"),
+      .notOneOf(["hello"], "Username 'hello' is already taken")
+      .min(3, "Username must be at least 3 characters long"),
     email: yup
       .string()
       .required("Email is required")
